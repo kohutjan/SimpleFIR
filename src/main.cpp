@@ -66,13 +66,56 @@ int main(int argc, char **argv)
   cv::Mat opencv_denoised_image = opencv_denoise_image(noised_image, kernel_size);
   opencv_denoised_image = crop_opencv_denoised_image(opencv_denoised_image, kernel_size);
 
+  cv::Mat naive_denoised_image = naive_denoise_image(noised_image, kernel_size);
+
+  cv::Mat diff_OpenCV_naive;
+  cv::absdiff(opencv_denoised_image, naive_denoised_image, diff_OpenCV_naive);
+
+  float sum_of_diff = cv::sum(diff_OpenCV_naive)[0];
+  cout << "Difference between OpenCV and naive approach: " << sum_of_diff << endl;
+
   show_image("Input Image", image);
   show_image("Noised Image", noised_image);
   show_image("OpenCV Denoised Image", opencv_denoised_image);
+  show_image("Naive Denoised Image", naive_denoised_image);
+  show_image("Difference between OpenCV and naive approach", diff_OpenCV_naive);
 
   cv::waitKey(0);
 
   return 0;
+}
+
+
+cv::Mat naive_denoise_image(cv::Mat image, cv::Size kernel_size)
+{
+  cv::Mat gaussian_kernel = cv::getGaussianKernel(kernel_size.height, 0, CV_32F);
+  cv::Mat denoised_image = naive_filter_image(image, gaussian_kernel);
+  denoised_image = naive_filter_image(denoised_image, gaussian_kernel.t());
+  //cv::sepFilter2D(image, denoised_image, -1, gaussian_filter, gaussian_filter);
+  return denoised_image;
+}
+
+
+cv::Mat naive_filter_image(cv::Mat image, cv::Mat kernel)
+{
+  cv::Mat output_image(image.rows, image.cols, CV_32F);
+  output_image = crop_opencv_denoised_image(output_image, kernel.size());
+  for (int x_img = 0; x_img < image.cols - kernel.cols; ++x_img)
+  {
+    for (int y_img = 0; y_img < image.rows - kernel.rows; ++y_img)
+    {
+      float kernel_sum = 0;
+      for (int x = 0; x < kernel.cols; ++x)
+      {
+        for (int y = 0; y < kernel.rows; ++y)
+        {
+          kernel_sum += image.at<float>(y_img + y, x_img + x) * kernel.at<float>(y, x);
+        }
+      }
+      output_image.at<float>(y_img, x_img) = kernel_sum;
+    }
+  }
+  return output_image;
 }
 
 
@@ -85,13 +128,12 @@ cv::Mat opencv_denoise_image(cv::Mat image, cv::Size kernel_size)
 }
 
 
-// crop OpenCV denoised image so it has the same size as image filtered by naive approach
+// crop OpenCV denoised image so it has the same size as image filtered by the naive approach
 cv::Mat crop_opencv_denoised_image(cv::Mat image, cv::Size kernel_size)
 {
-  int half_kernel_size = floor(kernel_size.height / 2.0);
-  cv::Point top_left_point(half_kernel_size, half_kernel_size);
-  cv::Size roi_size(image.size().width - 2 * half_kernel_size,
-                    image.size().height - 2 * half_kernel_size);
+  cv::Point top_left_point(floor(kernel_size.width / 2.0), floor(kernel_size.height / 2.0));
+  cv::Size roi_size(image.size().width - 2 * floor(kernel_size.width / 2.0),
+                    image.size().height - 2 * floor(kernel_size.height / 2.0));
   cv::Rect roi(top_left_point, roi_size);
   cv::Mat cropped_image = image(roi);
   return cropped_image;
