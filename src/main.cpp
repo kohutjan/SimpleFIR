@@ -120,9 +120,10 @@ int main(int argc, char **argv)
 
   float sum_of_diff = cv::sum(diff_OpenCV_naive)[0];
   float sum_of_diff_separable = cv::sum(diff_OpenCV_naive_separable)[0];
+  int number_of_pixels = opencv_denoised_image.rows * opencv_denoised_image.cols;
   cout << endl;
-  cout << "Difference between OpenCV and naive approach: " << sum_of_diff << endl;
-  cout << "Difference between OpenCV and naive separable approach: " << sum_of_diff_separable << endl;
+  cout << "Difference between OpenCV and naive approach (mean per pixel): " << sum_of_diff / number_of_pixels << endl;
+  cout << "Difference between OpenCV and naive separable approach (mean per pixel): " << sum_of_diff_separable / number_of_pixels << endl;
   // ###########################################################################
 
 
